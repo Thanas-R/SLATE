@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLATE : Spectral Latent Analysis &amp; Trajectory Exploration</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app-container">
+    <!-- TOP STATUS BAR -->
+    <header id="top-header">
+      <div class="brand-section">
+        <span class="brand-title">SLATE</span>
+        <span class="brand-sep">|</span>
+        <span class="header-metric">timesteps: <span id="hud-timesteps">720</span></span>
+        <span class="brand-sep">|</span>
+        <span class="header-metric">latent dim: <span id="hud-dim">8</span></span>
+        <span class="brand-sep">|</span>
+        <span class="header-metric">spectral radius: <span id="hud-radius">0.929</span></span>
+        <span class="brand-sep">|</span>
+        <span class="header-metric">fps: <span id="hud-fps" style="color: var(--accent-mid);">60</span></span>
+      </div>
+      <div class="header-controls">
+        <button id="btn-toggle-explainer" class="btn-nav">[ i / info ]</button>
+        <button id="btn-help" class="btn-nav">[ ? guide ]</button>
+        <button id="btn-config" class="btn-nav">[ params ]</button>
+      </div>
+    </header>
+
+    <!-- MAIN VIEWPORT AND SIDEBAR -->
+    <main id="main-layout">
+      <!-- VIEWPORT -->
+      <section id="viewport-container">
+        <!-- MODE TABS -->
+        <nav id="view-tabs-overlay">
+          <button class="tab-btn active" data-mode="3d">[ 01: 3D SPACE ]</button>
+          <button class="tab-btn" data-mode="2d">[ 02: 2D MAP ]</button>
+          <button class="tab-btn" data-mode="spectral">[ 03: STABILITY ]</button>
+          <button class="tab-btn" data-mode="errors">[ 04: SURROGATE ]</button>
+          <button class="tab-btn" data-mode="matrices">[ 05: RREF ]</button>
+          <button class="tab-btn" data-mode="prediction">[ 06: PREDICTION ]</button>
+        </nav>
+
+        <!-- VIEW EXPLANATION CARD -->
+        <div id="view-explainer">
+          <div class="explainer-header">
+            <div id="explainer-title" class="explainer-title">3D STATE SPACE CONSTELLATION</div>
+            <button id="btn-close-explainer" title="Close explanation">[ x ]</button>
+          </div>
+          <div id="explainer-desc" class="explainer-desc">
+            Each tiny dot is 1 hour of the neural network memory vector (h_t).
+            The path traces how the AI represents 30 days of evolving air pollution.
+          </div>
+          <div id="explainer-hints" class="explainer-hints">
+            controls: drag mouse to rotate orbit | scroll to zoom | click any dot to inspect | space to play
+          </div>
+        </div>
+
+        <!-- SELECTED NODE FLOATING BADGE -->
+        <div id="selected-node-tag">► hour 000 ◄</div>
+
+        <!-- 3D WebGL Canvas -->
+        <canvas id="canvas-3d"></canvas>
+
+        <!-- 2D Canvas -->
+        <canvas id="canvas-2d"></canvas>
+
+        <!-- Tooltip -->
+        <div id="node-tooltip"></div>
+
+        <!-- TIMELINE PLAYBACK WITH SPEED SELECTOR -->
+        <div id="timeline-overlay">
+          <button id="play-pause-btn">[ > play ]</button>
+          
+          <div class="speed-control-group">
+            <span class="speed-label">speed:</span>
+            <button class="btn-speed" data-speed="0.25">0.25x</button>
+            <button class="btn-speed active" data-speed="0.5">0.5x</button>
+            <button class="btn-speed" data-speed="1.0">1.0x</button>
+            <button class="btn-speed" data-speed="2.0">2.0x</button>
+          </div>
+
+          <input type="range" id="time-slider" min="0" max="719" value="0">
+          <span id="time-readout">hour: 0 / 719</span>
+        </div>
+      </section>
+
+      <!-- RIGHT SIDEBAR INSPECTOR -->
+      <aside id="sidebar-inspector">
+        <div class="panel-header">
+          <div id="sel-node-title" class="node-title-badge">HOUR: t = 000</div>
+          <div class="node-sub">observation at this specific time step</div>
+        </div>
+
+        <div class="telemetry-list">
+          <div class="telemetry-row">
+            <div>
+              <span class="t-label">State Energy (Norm):</span>
+              <span class="t-sub">magnitude ||h_t|| of memory</span>
+            </div>
+            <span id="sel-norm" class="t-value">1.412</span>
+          </div>
+
+          <div class="telemetry-row">
+            <div>
+              <span class="t-label">Surrogate Error:</span>
+              <span class="t-sub">gap: ||h_(t+1) - A h_t||</span>
+            </div>
+            <span id="sel-error" class="t-value">0.0321</span>
+          </div>
+
+          <div class="telemetry-row">
+            <div>
+              <span class="t-label">PM2.5 Pollution:</span>
+              <span class="t-sub">predicted (actual sensor)</span>
+            </div>
+            <span id="sel-pred" class="t-value">45.2 (act: 44.8)</span>
+          </div>
+        </div>
+
+        <div class="section-label">hidden neurons h_0 to h_7</div>
+
+        <div>
+          <div style="color: var(--text-muted); font-size: 9px; margin-bottom: 6px;">
+            activation strength of each latent dimension in [-1.0, +1.0]:
+          </div>
+          <div id="sel-components" class="components-list"></div>
+        </div>
+
+        <div class="section-label">camera coordinates</div>
+
+        <div class="telemetry-list">
+          <div class="telemetry-row">
+            <span class="t-label">orbit position x / y:</span>
+            <span class="t-value"><span id="hud-cam-x">22.0</span> / <span id="hud-cam-y">18.0</span></span>
+          </div>
+          <div class="telemetry-row">
+            <span class="t-label">view zoom:</span>
+            <span id="hud-zoom" class="t-value">1.00</span>
+          </div>
+        </div>
+
+        <div class="section-label">stability spectrum (Av = lambda v)</div>
+
+        <div>
+          <table class="modes-table">
+            <thead>
+              <tr>
+                <th>Mode</th>
+                <th>Eigenvalue</th>
+                <th>Radius</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="spectral-modes-body"></tbody>
+          </table>
+        </div>
+
+        <!-- PALETTE SWATCH LEGEND -->
+        <div class="legend-box">
+          <div class="legend-item"><span class="legend-dot dot-mid"></span> Active State</div>
+          <div class="legend-item"><span class="legend-dot dot-line"></span> Linking Line</div>
+          <div class="legend-item"><span class="legend-dot dot-light"></span> Memory Dots</div>
+          <div class="legend-item"><span class="legend-dot dot-deep"></span> Cluster Spoke</div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- BOTTOM STATUS BAR -->
+    <footer id="bottom-bar">
+      <div class="status-pills">
+        <span class="pill-item"><span class="pill-dot"></span> [normal]</span>
+        <span id="badge-mode" class="pill-item">mode: 3d space</span>
+        <span id="badge-stability" class="pill-item">stability: stable</span>
+      </div>
+      <div class="shortcuts-help">
+        <span>space:</span> play/pause &nbsp;|&nbsp;
+        <span>1-6:</span> switch views &nbsp;|&nbsp;
+        <span>r:</span> params &nbsp;|&nbsp;
+        <span>?:</span> guide
+      </div>
+    </footer>
+  </div>
+
+  <!-- CONFIGURATION MODAL -->
+  <div id="config-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-head">EXPERIMENT PARAMETERS</div>
+      <div class="field-group">
+        <label>Latent Dimension n (State Vector Size):</label>
+        <select id="inp-hidden-dim">
+          <option value="4">4 (Compact - Faster)</option>
+          <option value="8" selected>8 (Balanced Default)</option>
+          <option value="16">16 (Higher Capacity)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Recurrent Weight Scale (Stability Test):</label>
+        <select id="inp-scale">
+          <option value="0.8">0.8x (Rapid Decay - Fast forgetting)</option>
+          <option value="1.0" selected>1.0x (Normal Stable Memory - rho &lt; 1)</option>
+          <option value="1.2">1.2x (Marginal Limit Cycle - Edge of chaos)</option>
+          <option value="1.4">1.4x (Unstable Explosive - rho &gt; 1)</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-close-modal" class="btn-nav">[ cancel ]</button>
+        <button id="btn-run-experiment" class="btn-nav active">[ execute ]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELP GUIDE MODAL -->
+  <div id="help-modal" class="modal-overlay">
+    <div class="modal-box" style="width: 520px;">
+      <div class="modal-head">SLATE -- Spectral Latent Analysis & Trajectory Exploration</div>
+      <div class="help-scroll">
+        <div class="help-card">
+          <strong>1. What are the tiny dots?</strong>
+          Each tiny dot represents one single hour of the neural network's internal hidden memory state (h_t).
+          Instead of keeping the AI memory hidden inside a black box, we capture every hour's state vector.
+        </div>
+        <div class="help-card">
+          <strong>2. What is QR Projection (2D and 3D)?</strong>
+          The network memory lives in 8 dimensions, which human eyes cannot see.
+          QR decomposition finds the 2 or 3 most informative perpendicular directions and projects the 8D states into 2D/3D dots without distorting the trajectory.
+        </div>
+        <div class="help-card">
+          <strong>3. What is the Linear Surrogate (Matrix A)?</strong>
+          The neural network uses a non-linear tanh function. We use Least Squares to find a simple linear matrix A such that h_(t+1) approx A @ h_t.
+          This linear approximation achieves over 84% accuracy, proving that local neural dynamics can be understood with standard linear algebra.
+        </div>
+        <div class="help-card">
+          <strong>4. What does the Stability Circle mean?</strong>
+          We calculate the eigenvalues of matrix A.
+          If all eigenvalues lie inside the dashed unit circle (|lambda| &lt; 1), the memory is mathematically stable: perturbations decay and never blow up.
+          If any eigenvalue crosses outside (|lambda| &gt; 1), the memory becomes explosive.
+        </div>
+        <div class="help-card">
+          <strong>5. What is RREF?</strong>
+          Reduced Row Echelon Form (computed via SymPy) checks whether any of the 8 hidden neurons are duplicates of each other.
+          Pivot columns identify unique dimensions; free columns identify redundant ones.
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-close-help" class="btn-nav active">[ close guide ]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js and OrbitControls -->
+  <script src="/static/js/three.min.js"></script>
+  <script src="/static/js/OrbitControls.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
