@@ -243,6 +243,7 @@ math project/
 │       └── js/                    # Local Three.js and OrbitControls libraries (offline)
 ├── streamlit_app.py               # Alternative tabbed Streamlit dashboard
 ├── run.py                         # One-click startup script
+├── requirements.txt               # Python package dependencies
 ├── README.md                      # Comprehensive academic and practical guide
 └── GUIDE.md                       # Deep-dive presentation and viva preparation guide
 ```
@@ -251,9 +252,9 @@ math project/
 
 ## 6. HOW TO RUN
 
-Ensure standard dependencies are installed:
+Install the required dependencies:
 ```bash
-pip install numpy scipy sympy pandas fastapi uvicorn streamlit matplotlib
+pip install -r requirements.txt
 ```
 
 ### Option 1: Web Dashboard (Recommended)

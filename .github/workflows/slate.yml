@@ -1,0 +1,42 @@
+name: SLATE Pipeline & CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  run-slate-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run SLATE Mathematical Pipeline & Verify Proofs
+        run: |
+          python -c "
+          from core.pipeline import SLATEPipeline
+          pipeline = SLATEPipeline(hidden_dim=8)
+          res = pipeline.run_experiment()
+          print('=== SLATE MATHEMATICAL VERIFICATION ===')
+          print('Surrogate Fit (R^2):', res['dynamics']['r2_score'])
+          print('Spectral Radius (rho):', res['spectral']['spectral_radius'])
+          print('Stability Status:', res['spectral']['stability_status'])
+          print('RREF Rank:', f\"{res['rref']['rank']} / {res['rref']['total_columns']}\")
+          assert res['spectral']['spectral_radius'] < 1.0, 'System must be asymptotically stable'
+          assert res['rref']['rank'] == 8, 'Hidden space must be full rank'
+          "
