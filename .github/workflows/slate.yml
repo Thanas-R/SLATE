@@ -33,10 +33,12 @@ jobs:
           pipeline = SLATEPipeline(hidden_dim=8)
           res = pipeline.run_experiment()
           print('=== SLATE MATHEMATICAL VERIFICATION ===')
-          print('Surrogate Fit (R^2):', res['dynamics']['r2_score'])
+          print('Surrogate Fit (R^2):', res['dynamics']['r2_fit_score'])
           print('Spectral Radius (rho):', res['spectral']['spectral_radius'])
-          print('Stability Status:', res['spectral']['stability_status'])
-          print('RREF Rank:', f\"{res['rref']['rank']} / {res['rref']['total_columns']}\")
+          print('Stability Status:', res['spectral']['stability_class'])
+          print('RREF Rank:', res['rref']['rank'], '/', res['rref']['input_shape'][1])
           assert res['spectral']['spectral_radius'] < 1.0, 'System must be asymptotically stable'
           assert res['rref']['rank'] == 8, 'Hidden space must be full rank'
+          print('ALL MATHEMATICAL PROOFS VERIFIED SUCCESSFULLY!')
           "
+
