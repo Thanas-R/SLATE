@@ -292,7 +292,7 @@ Explanation card controls:
 
 ## 8. AUTHORS
 
-- **THANAS**
+- **THANAS R**
 - **SUMANT SHASTRI**
 - **SUDHANVA Y K**
 - **SOURABH B K**
