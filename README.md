@@ -287,3 +287,13 @@ streamlit run streamlit_app.py
 Explanation card controls:
 - [ i / info ] button (top right header): Toggle the floating explanation card.
 - [ x ] button (inside card): Dismiss the explanation card.
+
+---
+
+## 8. AUTHORS
+
+- **THANAS**
+- **SUMANT SHASTRI**
+- **SUDHANVA Y K**
+- **SOURABH B K**
+
